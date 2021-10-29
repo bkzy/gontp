@@ -34,40 +34,62 @@ func (t *TimeSync) Run() {
 		return
 	}
 	log.Info("The time synchronization system starts running")
+	var minutes int64
+	//log.Debug("配置信息:", t.Period, t.ServerType, t.Server)
 	for {
-		switch t.ServerType {
-		case "ntp":
-			//Get time from ntp
-			now, err := GetNtpTime(t.Server)
-			if err == nil {
-				//update time to system
-				err := UpdateSystemDateTime(now)
-				if err != nil {
+		if minutes == 0 {
+			minutes = t.Period
+			switch t.ServerType {
+			case "ntp":
+				//Get time from ntp
+				//log.Debug("读取Ntp时间开始")
+				now, err := GetNtpTime(t.Server)
+				//log.Debug("读取Ntp时间结果:", now, err)
+				if err == nil {
+					//update time to system
+					go func() {
+						err := UpdateSystemDateTime(now)
+						//log.Debug("更新系统时间结果:", err)
+						if err != nil {
+							log.Error(err.Error())
+						} else {
+							log.Info("Proofreading time succeeded")
+						}
+					}()
+				} else {
 					log.Error(err.Error())
 				}
-			} else {
-				log.Error(err.Error())
-			}
-		case "url":
-			//Get time str from url
-			tstr, status, err := GetFromHttpUrl(t.Server)
-			if err != nil || status != 200 {
-				log.Error("failed to get time stamp from url %s", t.Server)
-			} else {
-				//Parse to time.Time
-				now, err := TimeParse(tstr)
-				if err != nil {
-					log.Error("time format error:%s", err.Error())
+				//log.Debug("更新系统时间完成")
+			case "url":
+				//Get time str from url
+				tstr, status, err := GetFromHttpUrl(t.Server)
+				//log.Debug("URL读取到的结果:", tstr, status, err)
+				if err != nil || status != 200 {
+					log.Error("failed to get time stamp from url %s", t.Server)
 				} else {
-					//update time to system
-					err := UpdateSystemDateTime(now)
+					//Parse to time.Time
+					now, err := TimeParse(tstr)
 					if err != nil {
-						log.Error(err.Error())
+						log.Error("time format error:%s", err.Error())
+					} else {
+						//update time to system
+						go func() {
+							err := UpdateSystemDateTime(now)
+							if err != nil {
+								log.Error(err.Error())
+							} else {
+								log.Info("Proofreading time succeeded")
+							}
+						}()
 					}
 				}
+			default:
+				log.Info("The time synchronization server type error:%s", t.ServerType)
 			}
 		}
 		//sleep
-		time.Sleep(time.Duration(t.Period) * time.Minute)
+		//log.Debug("循环计数器:", minutes)
+		time.Sleep(60 * time.Second)
+		minutes -= 1
 	}
 }

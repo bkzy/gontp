@@ -1,6 +1,7 @@
 package gontp
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"io/ioutil"
@@ -11,6 +12,8 @@ import (
 
 	"github.com/gogf/gf/os/gproc"
 	"github.com/gogf/gf/text/gstr"
+	"golang.org/x/text/encoding/simplifiedchinese"
+	"golang.org/x/text/transform"
 
 	"strings"
 )
@@ -128,17 +131,39 @@ func GetNtpTime(ntpserver string) (now time.Time, er error) {
 
 //Update System Date and time
 func UpdateSystemDateTime(t time.Time) error {
-	dateTime := t.Format("2006-01-02 15:04:05.00000000")
+	dateTime := t.Format("2006-01-02 15:04:05.000000000")
 	system := runtime.GOOS
+
 	switch system {
 	case "windows":
 		{
 			dandt := gstr.Split(dateTime, " ")
+			//fmt.Println("日期:", dandt[0], "时间:", dandt[1])
 			_, err1 := gproc.ShellExec(`date  ` + dandt[0])
-			_, err2 := gproc.ShellExec(`time  ` + dandt[1])
-			if err1 != nil && err2 != nil {
-				return fmt.Errorf("error updating system time: please start the program as an administrator")
+			//fmt.Println("日期转换:", string(GbkToUtf8([]byte(str1))), string(GbkToUtf8([]byte(err1.Error()))))
+			if err1 != nil {
+				return fmt.Errorf("error updating system date,please start the program as an administrator:%s", err1.Error())
 			}
+			_, err2 := gproc.ShellExec(`time  ` + dandt[1])
+			//fmt.Println("时间转换:", string(GbkToUtf8([]byte(str2))), string(GbkToUtf8([]byte(err2.Error()))))
+			if err2 != nil {
+				return fmt.Errorf("error updating system time,please start the program as an administrator:%s", err2.Error())
+			}
+			/*
+				c := exec.Command("cmd", "/C", "date", dandt[0])
+				var stderr bytes.Buffer
+				c.Stderr = &stderr
+				if err := c.Run(); err != nil {
+					cmderr := GbkToUtf8(stderr.Bytes())
+					return fmt.Errorf("error updating system date,please start the program as an administrator:%s", cmderr[:len(cmderr)-1])
+				}
+				c = exec.Command("cmd", "/C", "time", dandt[1])
+				c.Stderr = &stderr
+				if err := c.Run(); err != nil {
+					cmderr := GbkToUtf8(stderr.Bytes())
+					return fmt.Errorf("error updating system time,please start the program as an administrator:%s", cmderr[:len(cmderr)-1])
+				}
+			*/
 			return nil
 		}
 	case "linux":
@@ -169,6 +194,7 @@ func TimeParse(s string, loc ...*time.Location) (time.Time, error) {
 			location = v
 		}
 	}
+	s = strings.ReplaceAll(s, "\"", "")
 	if strings.Contains(s, ".") {
 		strs := strings.Split(s, ".") //用.切片
 		dsec := "."                   //小数点后的秒格式
@@ -307,7 +333,7 @@ func TimeParse(s string, loc ...*time.Location) (time.Time, error) {
 	if err == nil {
 		return t, nil
 	}
-	return t, fmt.Errorf("the raw time string is:[%s],the error is:[%s]", s, err.Error())
+	return t, fmt.Errorf("the raw time string is:%s,the error is:%s", s, err.Error())
 }
 
 //Get string from http url
@@ -323,4 +349,19 @@ func GetFromHttpUrl(urlstr string) (string, int, error) {
 	}
 
 	return string(body), resp.StatusCode, nil
+}
+
+func GbkToUtf8(s []byte) []byte {
+	reader := transform.NewReader(bytes.NewReader(s), simplifiedchinese.GBK.NewDecoder())
+	d, e := ioutil.ReadAll(reader)
+	if e != nil {
+		return nil
+	}
+	var bstr []byte
+	for _, c := range d {
+		if c > 0 {
+			bstr = append(bstr, c)
+		}
+	}
+	return bstr
 }
