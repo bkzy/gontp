@@ -39,6 +39,7 @@ func (t *TimeSync) Run() {
 	for {
 		if minutes == 0 {
 			minutes = t.Period
+			log.Info("Execution time synchronization")
 			switch t.ServerType {
 			case "ntp":
 				//Get time from ntp
