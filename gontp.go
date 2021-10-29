@@ -4,7 +4,11 @@ import (
 	"encoding/binary"
 	"fmt"
 	"net"
+	"runtime"
 	"time"
+
+	"github.com/gogf/gf/os/gproc"
+	"github.com/gogf/gf/text/gstr"
 
 	"strings"
 )
@@ -117,4 +121,39 @@ func GetNtpTime(ntpserver string) (now time.Time, er error) {
 	nanos := (int64(rsp.TxTimeFrac) * 1e9) >> 32 // convert fractional to nanos
 	now = time.Unix(int64(secs), nanos)
 	return
+}
+
+//Update System Date
+func UpdateSystemDate(t time.Time) error {
+	dateTime := t.Format("2006-01-02 15:04:05.00000000")
+	system := runtime.GOOS
+	switch system {
+	case "windows":
+		{
+			dandt := gstr.Split(dateTime, " ")
+			_, err1 := gproc.ShellExec(`date  ` + dandt[0])
+			_, err2 := gproc.ShellExec(`time  ` + dandt[1])
+			if err1 != nil && err2 != nil {
+				return fmt.Errorf("error updating system time: please start the program as an administrator")
+			}
+			return nil
+		}
+	case "linux":
+		{
+			_, err := gproc.ShellExec(`date -s  "` + dateTime + `"`)
+			if err != nil {
+				return fmt.Errorf("error updating system time:%s", err.Error())
+			}
+			return nil
+		}
+	case "darwin":
+		{
+			_, err := gproc.ShellExec(`date -s  "` + dateTime + `"`)
+			if err != nil {
+				return fmt.Errorf("error updating system time:%s", err.Error())
+			}
+			return nil
+		}
+	}
+	return fmt.Errorf("error updating system time: unsupported operating system < %s >", system)
 }

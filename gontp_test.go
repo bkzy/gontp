@@ -26,3 +26,17 @@ func TestGetNtpTime(t *testing.T) {
 		}
 	}
 }
+
+func TestUpdateSystemTime(t *testing.T) {
+	now, err := GetNtpTime("ntp.ntsc.ac.cn")
+	if err != nil {
+		t.Error("获取NTP时间错误:", err.Error())
+	} else {
+		err = UpdateSystemDate(now)
+		if err != nil {
+			t.Error("更新系统时间错误:", err.Error())
+		} else {
+			t.Log("更新系统时间成功:", now)
+		}
+	}
+}
