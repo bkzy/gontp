@@ -136,6 +136,7 @@ func UpdateSystemDateTime(t time.Time) error {
 
 	switch system {
 	case "windows":
+		dateTime = t.Format("2006-01-02 15:04:05")
 		{
 			dandt := gstr.Split(dateTime, " ")
 			//fmt.Println("日期:", dandt[0], "时间:", dandt[1])
@@ -149,21 +150,6 @@ func UpdateSystemDateTime(t time.Time) error {
 			if err2 != nil {
 				return fmt.Errorf("error updating system time,please start the program as an administrator:%s", err2.Error())
 			}
-			/*
-				c := exec.Command("cmd", "/C", "date", dandt[0])
-				var stderr bytes.Buffer
-				c.Stderr = &stderr
-				if err := c.Run(); err != nil {
-					cmderr := GbkToUtf8(stderr.Bytes())
-					return fmt.Errorf("error updating system date,please start the program as an administrator:%s", cmderr[:len(cmderr)-1])
-				}
-				c = exec.Command("cmd", "/C", "time", dandt[1])
-				c.Stderr = &stderr
-				if err := c.Run(); err != nil {
-					cmderr := GbkToUtf8(stderr.Bytes())
-					return fmt.Errorf("error updating system time,please start the program as an administrator:%s", cmderr[:len(cmderr)-1])
-				}
-			*/
 			return nil
 		}
 	case "linux":
